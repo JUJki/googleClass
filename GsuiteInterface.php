@@ -10,7 +10,7 @@ class GsuiteInterface
 	private $pathJsonWebAuth = 'client_secret_aouth.json';
 	private $pathJsonAccountService = 'favlink-gsuite-204de3d79173.json';
 	private $nameApp = 'FavLink-GSuite';
-	private $domaineGsuite = 'favlink.net';
+	private $domainGsuite = 'favlink.net';
 	private $emailDelegate = 'julien@favlink.net';
 	private $personFields = [
 		'addresses',
@@ -103,6 +103,7 @@ class GsuiteInterface
 			]
 		);
 	}
+
 	/**
 	 * Scopes pour les permissions demandant les infos user
 	 */
@@ -117,6 +118,7 @@ class GsuiteInterface
 			]
 		);
 	}
+
 	/**
 	 * Scopes pour les permissions demandant les infos sur un calendar et ces evenements
 	 */
@@ -131,6 +133,7 @@ class GsuiteInterface
 			]
 		);
 	}
+
 	/**
 	 * Scopes pour les permissions demandant les infos sur un user et ces contacts
 	 */
@@ -148,6 +151,7 @@ class GsuiteInterface
 			]
 		);
 	}
+
 	/**
 	 * Scopes pour les permissions demandant les infos pour consulter un organisation
 	 */
@@ -193,19 +197,28 @@ class GsuiteInterface
 	/**
 	 * Retourne les infos de l'utilisateur donnant son accord à la connection Oauth
 	 * @return stdClass
+	 * @throws CustomException
 	 */
 	public function getUserInfoOAuth()
 	{
 		$service = new Google_Service_Oauth2($this->getClient());
-		return $service->userinfo->get()->toSimpleObject();
+		try {
+			$user = $service->userinfo->get();
+		} catch (\Google_Exception $error) {
+			throw new CustomException(
+				'GsuiteInterface/getCalendar:: Explication text' . $error->getMessage(),
+				GS_ERROR1
+			);
+		}
+		return $user->toSimpleObject();
 	}
-
 
 
 	/**
 	 * Retourne les informations d'un customer de l'organistion, par defaut : my_customer
 	 * @param string $customerKey
 	 * @return stdClass
+	 * @throws CustomException
 	 */
 	public function getCustomerInfo($customerKey = 'my_customer')
 	{
@@ -213,23 +226,37 @@ class GsuiteInterface
 		$this->setScopeDirectory();
 
 		$service = new Google_Service_Directory($this->getClient());
-		$customer = $service->customers->get($customerKey);
+		try {
+			$customer = $service->customers->get($customerKey);
+		} catch (\Google_Exception $error) {
+			throw new CustomException(
+				'GsuiteInterface/getCalendar:: Explication text' . $error->getMessage(),
+				GS_ERROR1
+			);
+		}
 		return $customer->toSimpleObject();
 	}
 
 	/**
 	 * Retourne les informations d'une organisation, par défaut my_customer et path vide pour le premier
-	 * niveau de profondeur
 	 * @param string $customerId
 	 * @param string $path
 	 * @return stdClass
+	 * @throws CustomException
 	 */
 	public function getOrganisationInfo($customerId = 'my_customer', $path = "")
 	{
 		$this->setServiceAuthentification();
 		$this->setScopeDirectory();
 		$service = new Google_Service_Directory($this->getClient());
-		$organisationInfo = $service->orgunits->get($customerId, $path);
+		try {
+			$organisationInfo = $service->orgunits->get($customerId, $path);
+		} catch (\Google_Exception $error) {
+			throw new CustomException(
+				'GsuiteInterface/getCalendar:: Explication text' . $error->getMessage(),
+				GS_ERROR1
+			);
+		}
 		return $organisationInfo->toSimpleObject();
 	}
 
@@ -237,6 +264,7 @@ class GsuiteInterface
 	 * Permet de récupérer les informations de toutes les organistions d'un customer
 	 * @param string $customerId
 	 * @return stdClass
+	 * @throws CustomException
 	 */
 	public function getListOrganisationInfo($customerId = 'my_customer')
 	{
@@ -244,21 +272,37 @@ class GsuiteInterface
 		$this->setScopeDirectory();
 
 		$service = new Google_Service_Directory($this->getClient());
-		$organisationInfo = $service->orgunits->listOrgunits($customerId)->toSimpleObject();
-		return $organisationInfo;
+		try {
+			$organisationInfo = $service->orgunits->listOrgunits($customerId);
+		} catch (\Google_Exception $error) {
+			throw new CustomException(
+				'GsuiteInterface/getCalendar:: Explication text' . $error->getMessage(),
+				GS_ERROR1
+			);
+		}
+		return $organisationInfo->toSimpleObject();
 	}
 
 	/**
 	 * Permet de recuperer les informations d'un utilisateur à partir du userKey => email
-	 * @param $userKey email de l'utilisateur
+	 * @param $userKey
 	 * @return stdClass
+	 * @throws CustomException
 	 */
 	public function getUserInfoDirectory($userKey)
 	{
 		$this->setServiceAuthentification();
 		$this->setScopeDirectory();
 		$service = new Google_Service_Directory($this->getClient());
-		return $service->users->get($userKey)->toSimpleObject();
+		try {
+			$user = $service->users->get($userKey);
+		} catch (\Google_Exception $error) {
+			throw new CustomException(
+				'GsuiteInterface/getCalendar:: Explication text' . $error->getMessage(),
+				GS_ERROR1
+			);
+		}
+		return $user->toSimpleObject();
 	}
 //OK
 
@@ -275,14 +319,17 @@ class GsuiteInterface
 		$service = new Google_Service_Directory($this->getClient());
 		$optParams = array(
 			'customer' => $customerId,
-			'domain' => $this->domaineGsuite,
+			'domain' => $this->domainGsuite,
 			'maxResults' => 10,
 			'orderBy' => 'email',
 		);
 		try {
 			$listMembers = $service->users->listUsers($optParams);
 		} catch (\Google_Exception $error) {
-			throw new CustomException('GsuiteInterface/exampleMethod:: Explication text' . $error->getMessage(), GS_ERROR1);
+			throw new CustomException(
+				'GsuiteInterface/exampleMethod:: Explication text' . $error->getMessage(),
+				GS_ERROR1
+			);
 		}
 		$users = [];
 		foreach ($listMembers->getUsers() as $user) {
@@ -310,7 +357,10 @@ class GsuiteInterface
 		try {
 			$peoples = $service->people_connections->listPeopleConnections('people/' . $accountId, $optParams);
 		} catch (\Google_Exception $error) {
-			throw new CustomException('GsuiteInterface/getPeopleConnection:: Explication text' . $error->getMessage(), GS_ERROR1);
+			throw new CustomException(
+				'GsuiteInterface/getPeopleConnection:: Explication text' . $error->getMessage(),
+				GS_ERROR1
+			);
 		}
 		$listPeople = [];
 		while (true) {
@@ -346,7 +396,10 @@ class GsuiteInterface
 		try {
 			$people = $service->people->get('people/' . $accountId, $optParams);
 		} catch (\Google_Exception $error) {
-			throw new CustomException('GsuiteInterface/getPeopleConnection:: Explication text' . $error->getMessage(), GS_ERROR1);
+			throw new CustomException(
+				'GsuiteInterface/getPeopleConnection:: Explication text' . $error->getMessage(),
+				GS_ERROR1
+			);
 		}
 		return $people->toSimpleObject();
 	}
@@ -361,7 +414,10 @@ class GsuiteInterface
 		try {
 			$contactGroup = $service->contactGroups->get('contactGroups/all');
 		} catch (\Google_Exception $error) {
-			throw new CustomException('GsuiteInterface/getPeopleConnection:: Explication text' . $error->getMessage(), GS_ERROR1);
+			throw new CustomException(
+				'GsuiteInterface/getPeopleConnection:: Explication text' . $error->getMessage(),
+				GS_ERROR1
+			);
 		}
 		return $contactGroup->toSimpleObject();
 	}
@@ -377,7 +433,15 @@ class GsuiteInterface
 		$this->setServiceAuthentification();
 		$this->setScopeUser();
 		$service = new Google_Service_Plus($this->getClient());
-		return $service->people->get($userId)->toSimpleObject();
+		try {
+			$user = $service->people->get($userId);
+		} catch (\Google_Exception $error) {
+			throw new CustomException(
+				'GsuiteInterface/getCalendar:: Explication text' . $error->getMessage(),
+				GS_ERROR1
+			);
+		}
+		return $user->toSimpleObject();
 	}
 
 	/**
@@ -399,7 +463,10 @@ class GsuiteInterface
 		try {
 			$events = $service->events->listEvents($calendarId, $optParams);
 		} catch (\Google_Exception $error) {
-			throw new CustomException('GsuiteInterface/getListEventsCalendar:: Explication text' . $error->getMessage(), GS_ERROR1);
+			throw new CustomException(
+				'GsuiteInterface/getListEventsCalendar:: Explication text' . $error->getMessage(),
+				GS_ERROR1
+			);
 		}
 		$litEvents = [];
 		while (true) {
@@ -433,7 +500,8 @@ class GsuiteInterface
 		} catch (\Google_Exception $error) {
 			throw new CustomException(
 				'GsuiteInterface/getCalendar:: Explication text' . $error->getMessage(),
-				GS_ERROR1);
+				GS_ERROR1
+			);
 		}
 		return $calendar->toSimpleObject();
 	}

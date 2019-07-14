@@ -51,42 +51,35 @@ class GsuiteInterface
 	{
 		$this->client = new Google_Client();
 		$this->client->setApplicationName($this->nameApp);
-		/*$this->client->setScopes(
-			[
-
-				Google_Service_CloudResourceManager::CLOUD_PLATFORM,
-				Google_Service_CloudResourceManager::CLOUD_PLATFORM_READ_ONLY,
-
-				Google_Service_Sheets::DRIVE,
-				Google_Service_Sheets::DRIVE_FILE,
-				Google_Service_Sheets::DRIVE_READONLY,
-
-				Google_Service_Sheets::SPREADSHEETS,
-				Google_Service_Sheets::SPREADSHEETS_READONLY,
-
-
-			]
-		);*/
-
 	}
 
+	/**
+	 * Permet de configurer le client google avec le web Oauth
+	 */
 	public function setOauthClient()
 	{
 		$this->setWebAuthentification();
 		$this->setScopeUserOauth();
 	}
 
+	/**
+	 * Permet de set le client avec le fichier json web Oauth
+	 * @throws Google_Exception
+	 */
 	private function setWebAuthentification()
 	{
 		$this->client->setAuthConfig($this->pathJsonWebAuth);
 	}
 
+	/**
+	 * Permet de set le client google avec le dichier json account service
+	 * @throws Google_Exception
+	 */
 	private function setServiceAuthentification()
 	{
 		$this->client->setAuthConfig($this->pathJsonAccountService);
 		$this->client->useApplicationDefaultCredentials();
 		$this->client->setAccessType('offline');
-		//$this->client->setPrompt('select_account consent');
 		$this->client->setSubject($this->emailDelegate);
 	}
 
@@ -205,10 +198,7 @@ class GsuiteInterface
 		try {
 			$user = $service->userinfo->get();
 		} catch (\Google_Exception $error) {
-			throw new CustomException(
-				'GsuiteInterface/getCalendar:: Explication text' . $error->getMessage(),
-				GS_ERROR1
-			);
+			$this->interpretationException ($error, 'getUserInfoOAuth');
 		}
 		return $user->toSimpleObject();
 	}
@@ -229,10 +219,7 @@ class GsuiteInterface
 		try {
 			$customer = $service->customers->get($customerKey);
 		} catch (\Google_Exception $error) {
-			throw new CustomException(
-				'GsuiteInterface/getCalendar:: Explication text' . $error->getMessage(),
-				GS_ERROR1
-			);
+			$this->interpretationException ($error, 'getCustomerInfo');
 		}
 		return $customer->toSimpleObject();
 	}
@@ -252,10 +239,7 @@ class GsuiteInterface
 		try {
 			$organisationInfo = $service->orgunits->get($customerId, $path);
 		} catch (\Google_Exception $error) {
-			throw new CustomException(
-				'GsuiteInterface/getCalendar:: Explication text' . $error->getMessage(),
-				GS_ERROR1
-			);
+			$this->interpretationException ($error, 'getOrganisationInfo');
 		}
 		return $organisationInfo->toSimpleObject();
 	}
@@ -275,10 +259,7 @@ class GsuiteInterface
 		try {
 			$organisationInfo = $service->orgunits->listOrgunits($customerId);
 		} catch (\Google_Exception $error) {
-			throw new CustomException(
-				'GsuiteInterface/getCalendar:: Explication text' . $error->getMessage(),
-				GS_ERROR1
-			);
+			$this->interpretationException ($error, 'getListOrganisationInfo');
 		}
 		return $organisationInfo->toSimpleObject();
 	}
@@ -297,10 +278,7 @@ class GsuiteInterface
 		try {
 			$user = $service->users->get($userKey);
 		} catch (\Google_Exception $error) {
-			throw new CustomException(
-				'GsuiteInterface/getCalendar:: Explication text' . $error->getMessage(),
-				GS_ERROR1
-			);
+			$this->interpretationException ($error, 'getUserInfoDirectory');
 		}
 		return $user->toSimpleObject();
 	}
@@ -326,10 +304,7 @@ class GsuiteInterface
 		try {
 			$listMembers = $service->users->listUsers($optParams);
 		} catch (\Google_Exception $error) {
-			throw new CustomException(
-				'GsuiteInterface/exampleMethod:: Explication text' . $error->getMessage(),
-				GS_ERROR1
-			);
+			$this->interpretationException ($error, 'getListMembers');
 		}
 		$users = [];
 		foreach ($listMembers->getUsers() as $user) {
@@ -338,6 +313,48 @@ class GsuiteInterface
 		return $users;
 	}
 
+	/**
+	 * Permet de recuperer les photos d'un user à partir de son userkey
+	 * @param $userKey
+	 * @return stdClass
+	 * @throws CustomException
+	 * @throws Google_Exception
+	 */
+	public function getUserPhoto($userKey)
+	{
+		$this->setServiceAuthentification();
+		$this->setScopeDirectory();
+		$service = new Google_Service_Directory($this->getClient());
+
+		try {
+			$userPhoto = $service->users_photos->get($userKey);
+		} catch (\Google_Exception $error) {
+			$this->interpretationException ($error, 'getUserPhoto');
+		}
+
+		return $userPhoto->toSimpleObject();
+	}
+
+	/**
+	 * Permet de recuperer les alias d'un user
+	 * @param $userKey
+	 * @return mixed
+	 * @throws CustomException
+	 * @throws Google_Exception
+	 */
+	public function getUserAlias($userKey)
+	{
+		$this->setServiceAuthentification();
+		$this->setScopeDirectory();
+		$service = new Google_Service_Directory($this->getClient());
+		try {
+			$userAlias = $service->users_aliases->listUsersAliases($userKey);
+		} catch (\Google_Exception $error) {
+			$this->interpretationException($error, 'getUserAlias');
+		}
+
+		return $userAlias->getAliases();
+	}
 
 	/**
 	 * Permet de récuperer les connections d'un contact, par défaut c'est le compte principal
@@ -357,10 +374,7 @@ class GsuiteInterface
 		try {
 			$peoples = $service->people_connections->listPeopleConnections('people/' . $accountId, $optParams);
 		} catch (\Google_Exception $error) {
-			throw new CustomException(
-				'GsuiteInterface/getPeopleConnection:: Explication text' . $error->getMessage(),
-				GS_ERROR1
-			);
+			$this->interpretationException ($error, 'getPeopleConnection');
 		}
 		$listPeople = [];
 		while (true) {
@@ -396,10 +410,7 @@ class GsuiteInterface
 		try {
 			$people = $service->people->get('people/' . $accountId, $optParams);
 		} catch (\Google_Exception $error) {
-			throw new CustomException(
-				'GsuiteInterface/getPeopleConnection:: Explication text' . $error->getMessage(),
-				GS_ERROR1
-			);
+			$this->interpretationException ($error, 'getInfoPeople');
 		}
 		return $people->toSimpleObject();
 	}
@@ -414,10 +425,7 @@ class GsuiteInterface
 		try {
 			$contactGroup = $service->contactGroups->get('contactGroups/all');
 		} catch (\Google_Exception $error) {
-			throw new CustomException(
-				'GsuiteInterface/getPeopleConnection:: Explication text' . $error->getMessage(),
-				GS_ERROR1
-			);
+			$this->interpretationException ($error, 'getContactGroup');
 		}
 		return $contactGroup->toSimpleObject();
 	}
@@ -436,10 +444,7 @@ class GsuiteInterface
 		try {
 			$user = $service->people->get($userId);
 		} catch (\Google_Exception $error) {
-			throw new CustomException(
-				'GsuiteInterface/getCalendar:: Explication text' . $error->getMessage(),
-				GS_ERROR1
-			);
+			$this->interpretationException ($error, 'getUserInfo');
 		}
 		return $user->toSimpleObject();
 	}
@@ -463,10 +468,7 @@ class GsuiteInterface
 		try {
 			$events = $service->events->listEvents($calendarId, $optParams);
 		} catch (\Google_Exception $error) {
-			throw new CustomException(
-				'GsuiteInterface/getListEventsCalendar:: Explication text' . $error->getMessage(),
-				GS_ERROR1
-			);
+			$this->interpretationException ($error, 'getListEventsCalendar');
 		}
 		$litEvents = [];
 		while (true) {
@@ -498,11 +500,37 @@ class GsuiteInterface
 		try {
 			$calendar = $service->calendars->get($idCalendar);
 		} catch (\Google_Exception $error) {
-			throw new CustomException(
-				'GsuiteInterface/getCalendar:: Explication text' . $error->getMessage(),
-				GS_ERROR1
-			);
+			$this->interpretationException ($error, 'getCalendar');
 		}
 		return $calendar->toSimpleObject();
+	}
+
+	private function interpretationException (Google_Exception $error, $nameFunction) {
+		if ($error->getCode() === 400) {
+			throw new CustomException(
+				'GsuiteInterface/'.$nameFunction.'/ [' . $error->getCode() . '] ' . $error->getMessage()->status,
+				GS_ERROR2
+			);
+		} else if ($error->getCode() === 401) {
+			throw new CustomException(
+				'GsuiteInterface/'.$nameFunction.'/ [' . $error->getCode() . '] ' . $error->getMessage(),
+				GS_ERROR2
+			);
+		} else if ($error->getCode() === 403) {
+			throw new CustomException(
+				'GsuiteInterface/'.$nameFunction.'/ [' . $error->getCode() . '] ' . $error->getMessage(),
+				GS_ERROR2
+			);
+		} else if ($error->getCode() === 404) {
+			throw new CustomException(
+				'GsuiteInterface/'.$nameFunction.'/ [' . $error->getCode() . '] ' . $error->getMessage(),
+				GS_ERROR2
+			);
+		} else {
+			throw new CustomException(
+				'GsuiteInterface/'.$nameFunction.'/ [' . $error->getCode() . '] ' . $error->getMessage(),
+				GS_ERROR2
+			);
+		}
 	}
 }

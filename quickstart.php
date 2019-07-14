@@ -3,8 +3,8 @@
 require 'GsuiteInterface.php';
 
 session_start();
-error_reporting(-1);
-ini_set('display_errors', 1);
+/*error_reporting(-1);
+ini_set('display_errors', 1);*/
 function getUserInfo()
 {
 	$googleInterface = new GsuiteInterface();
@@ -40,4 +40,10 @@ function getUserInfo()
 	return $googleInterface->getUserInfoOAuth();
 }
 
-var_dump(getUserInfo());
+try {
+	echo json_encode(getUserInfo());
+} catch (\CustomException $error) {
+	echo $error->getCode();
+	echo $error->getMessage();
+}
+

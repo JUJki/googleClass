@@ -11,7 +11,7 @@ try {
 //114312677302791064394
 	//$events = $gsuiteInterface->getUserInfo('114312677302791064394');
 	//$events = $gsuiteInterface->getUserInfoDirectory('antoine@favlink.net');
-	$events = $gsuiteInterface->getInfoPeople();
+	$events = $gsuiteInterface->getUserInfo();
 	echo '<pre>';
 	var_dump($events);
 	echo '</pre>';

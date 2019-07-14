@@ -1,0 +1,6 @@
+{
+    "name": "julien/interface-gsuite",
+    "require": {
+        "google/apiclient":"^2.0"
+    }
+}

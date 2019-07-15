@@ -21,7 +21,7 @@ try {
 	/*echo '<pre>';
 	var_dump($events);
 	echo '</pre>';*/
-	$events = $gsuiteInterface->setWebhookDirectoryUser('add');
+	$events = $gsuiteInterface->getListNotifications();
 	echo '<pre>';
 	var_dump($events);
 	echo '</pre>';

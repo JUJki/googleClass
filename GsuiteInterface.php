@@ -235,14 +235,15 @@ class GsuiteInterface
 		]);
 		$optParams = [
 			'event' => $event,
-			'domain' => $this->domainGsuite
+			'domain' => $this->domainGsuite,
+			'customer' => 'my_customer'
 		];
 		try {
 			$response = $service->users->watch($directoryChannel, $optParams);
 		} catch (\Google_Exception $error) {
 			$this->interpretationException($error, 'setWebhookDirectoryUser');
 		}
-		return $response;
+		return $response->toSimpleObject();
 	}
 
 	/**
@@ -262,7 +263,7 @@ class GsuiteInterface
 		} catch (\Google_Exception $error) {
 			$this->interpretationException($error, 'getListNotifications');
 		}
-		return $notificationsList->getItems();
+		return $notificationsList->toSimpleObject();
 	}
 
 	/**

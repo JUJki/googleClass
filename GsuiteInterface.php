@@ -81,7 +81,6 @@ class GsuiteInterface
 	{
 		$this->client->setAuthConfig($this->pathJsonAccountService);
 		$this->client->useApplicationDefaultCredentials();
-		//$this->client->setAccessType('offline');
 		$this->client->setSubject($this->emailDelegate);
 	}
 
@@ -170,8 +169,9 @@ class GsuiteInterface
 		);
 	}
 
-	public function getUrlNotification() {
-		return $this->urlDomain.DIRECTORY_SEPARATOR.$this->endPointNotifications;
+	public function getUrlNotification()
+	{
+		return $this->urlDomain . DIRECTORY_SEPARATOR . $this->endPointNotifications;
 	}
 
 	/**
@@ -210,12 +210,26 @@ class GsuiteInterface
 	}
 
 	/**
+	 * Permet de set un webhook
+	 * @param $event
 	 * @return Google_Service_Directory_Channel
 	 * @throws CustomException
 	 * @throws Google_Exception
 	 */
-	public function setWebhookDirectoryUser()
+	public function setWebhookDirectoryUser($event)
 	{
+		$eventAvailable = [
+			'add',
+			'delete',
+			'makeAdmin',
+			'undelete',
+			'update',
+		];
+		if (!in_array($event, $eventAvailable)) {
+			throw new InvalidArgumentException(
+				'Invalid event type'
+			);
+		}
 		$this->setServiceAuthentification();
 		$this->setScopeDirectory();
 		$service = new Google_Service_Directory($this->getClient());
@@ -228,7 +242,7 @@ class GsuiteInterface
 			"ttl" => 3600
 		]);
 		$optParams = [
-			'event' => 'add',
+			'event' => $event,
 			'domain' => $this->domainGsuite
 		];
 		try {
@@ -300,8 +314,8 @@ class GsuiteInterface
 	}
 
 	/**
-	 * Permet de recuperer les informations d'un utilisateur à partir du userKey => email
-	 * @param $userKey
+	 * Permet de recuperer les informations d'un utilisateur à partir du userKey => email ou id
+	 * @param $userKey is id ou user email
 	 * @return stdClass
 	 * @throws CustomException
 	 */
@@ -355,7 +369,7 @@ class GsuiteInterface
 			$nameInstance = new Google_Service_Directory_UserName();
 			$nameInstance->setGivenName($infoUser['firstname']);
 			$nameInstance->setFamilyName($infoUser['lastname']);
-			$nameInstance->setFullName($infoUser['firstname'].' '.$infoUser['lastname']);
+			$nameInstance->setFullName($infoUser['firstname'] . ' ' . $infoUser['lastname']);
 
 			$userInstance = new Google_Service_Directory_User();
 			$userInstance->setName($nameInstance);
@@ -372,12 +386,13 @@ class GsuiteInterface
 
 	/**
 	 * Permet de suspendre un user
-	 * @param $userKey
+	 * @param $userKey is id ou user email
 	 * @return stdClass
 	 * @throws CustomException
 	 * @throws Google_Exception
 	 */
-	public function suspendedUserDirectory($userKey) {
+	public function suspendedUserDirectory($userKey)
+	{
 		$this->setServiceAuthentification();
 		$this->setScopeDirectory();
 		$service = new Google_Service_Directory($this->getClient());
@@ -423,7 +438,7 @@ class GsuiteInterface
 
 	/**
 	 * Permet de recuperer les photos d'un user à partir de son userkey
-	 * @param $userKey
+	 * @param $userKey is id ou user email
 	 * @return stdClass
 	 * @throws CustomException
 	 * @throws Google_Exception
@@ -445,7 +460,7 @@ class GsuiteInterface
 
 	/**
 	 * Permet de recuperer les alias d'un user
-	 * @param $userKey
+	 * @param $userKey is id ou user email
 	 * @return mixed
 	 * @throws CustomException
 	 * @throws Google_Exception
@@ -524,8 +539,13 @@ class GsuiteInterface
 	}
 
 
-//OK
-	public function getContactGroup()
+	/**
+	 * Permet de récupérer les groups
+	 * @return stdClass
+	 * @throws CustomException
+	 * @throws Google_Exception
+	 */
+	public function getContactGroups()
 	{
 		$this->setServiceAuthentification();
 		$this->setScopePeople();

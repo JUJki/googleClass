@@ -12,6 +12,8 @@ class GsuiteInterface
 	private $nameApp = 'FavLink-GSuite';
 	private $domainGsuite = 'favlink.net';
 	private $emailDelegate = 'julien@favlink.net';
+	private $urlDomain = 'https://440891e6.ngrok.io';
+	private $endPointNotifications = 'notifications.php';
 	private $personFields = [
 		'addresses',
 		'ageRanges',
@@ -79,7 +81,7 @@ class GsuiteInterface
 	{
 		$this->client->setAuthConfig($this->pathJsonAccountService);
 		$this->client->useApplicationDefaultCredentials();
-		$this->client->setAccessType('offline');
+		//$this->client->setAccessType('offline');
 		$this->client->setSubject($this->emailDelegate);
 	}
 
@@ -168,6 +170,10 @@ class GsuiteInterface
 		);
 	}
 
+	public function getUrlNotification() {
+		return $this->urlDomain.DIRECTORY_SEPARATOR.$this->endPointNotifications;
+	}
+
 	/**
 	 * Retourne le client Google
 	 * @return Google_Client
@@ -198,11 +204,40 @@ class GsuiteInterface
 		try {
 			$user = $service->userinfo->get();
 		} catch (\Google_Exception $error) {
-			$this->interpretationException ($error, 'getUserInfoOAuth');
+			$this->interpretationException($error, 'getUserInfoOAuth');
 		}
 		return $user->toSimpleObject();
 	}
 
+	/**
+	 * @return Google_Service_Directory_Channel
+	 * @throws CustomException
+	 * @throws Google_Exception
+	 */
+	public function setWebhookDirectoryUser()
+	{
+		$this->setServiceAuthentification();
+		$this->setScopeDirectory();
+		$service = new Google_Service_Directory($this->getClient());
+		$directoryChannel = new Google_Service_Directory_Channel();
+		$directoryChannel->setId(uniqid());
+		$directoryChannel->setType('web_hook');
+		$directoryChannel->setAddress($this->getUrlNotification());
+		$directoryChannel->setToken("target=MyNotification");
+		$directoryChannel->setParams([
+			"ttl" => 3600
+		]);
+		$optParams = [
+			'event' => 'add',
+			'domain' => $this->domainGsuite
+		];
+		try {
+			$response = $service->users->watch($directoryChannel, $optParams);
+		} catch (\Google_Exception $error) {
+			$this->interpretationException($error, 'getCustomerInfo');
+		}
+		return $response;
+	}
 
 	/**
 	 * Retourne les informations d'un customer de l'organistion, par defaut : my_customer
@@ -219,7 +254,7 @@ class GsuiteInterface
 		try {
 			$customer = $service->customers->get($customerKey);
 		} catch (\Google_Exception $error) {
-			$this->interpretationException ($error, 'getCustomerInfo');
+			$this->interpretationException($error, 'getCustomerInfo');
 		}
 		return $customer->toSimpleObject();
 	}
@@ -239,7 +274,7 @@ class GsuiteInterface
 		try {
 			$organisationInfo = $service->orgunits->get($customerId, $path);
 		} catch (\Google_Exception $error) {
-			$this->interpretationException ($error, 'getOrganisationInfo');
+			$this->interpretationException($error, 'getOrganisationInfo');
 		}
 		return $organisationInfo->toSimpleObject();
 	}
@@ -259,7 +294,7 @@ class GsuiteInterface
 		try {
 			$organisationInfo = $service->orgunits->listOrgunits($customerId);
 		} catch (\Google_Exception $error) {
-			$this->interpretationException ($error, 'getListOrganisationInfo');
+			$this->interpretationException($error, 'getListOrganisationInfo');
 		}
 		return $organisationInfo->toSimpleObject();
 	}
@@ -278,11 +313,63 @@ class GsuiteInterface
 		try {
 			$user = $service->users->get($userKey);
 		} catch (\Google_Exception $error) {
-			$this->interpretationException ($error, 'getUserInfoDirectory');
+			$this->interpretationException($error, 'getUserInfoDirectory');
 		}
 		return $user->toSimpleObject();
 	}
-//OK
+
+
+	/**
+	 * Permet de creer un nouvel utilisateur
+	 * @param $infoUser
+	 * @return stdClass
+	 * @throws CustomException
+	 * @throws Google_Exception
+	 */
+	public function newUserDirectory($infoUser)
+	{
+		if (!isset($infoUser['firstname']) || empty($infoUser['firstname'])) {
+			throw new InvalidArgumentException(
+				'Invalid firstname key - make sure firstname is defined and not empt'
+			);
+		}
+		if (!isset($infoUser['lastname']) || empty($infoUser['lastname'])) {
+			throw new InvalidArgumentException(
+				'Invalid lastname key - make sure lastname is defined and not empt'
+			);
+		}
+		if (!isset($infoUser['password']) || empty($infoUser['password'])) {
+			throw new InvalidArgumentException(
+				'Invalid password key - make sure password is defined and not empt'
+			);
+		}
+		if (!isset($infoUser['email']) || empty($infoUser['email'])) {
+			throw new InvalidArgumentException(
+				'Invalid email key - make sure email is defined and not empty'
+			);
+		}
+		$this->setServiceAuthentification();
+		$this->setScopeDirectory();
+		$service = new Google_Service_Directory($this->getClient());
+		try {
+			$nameInstance = new Google_Service_Directory_UserName();
+			$nameInstance->setGivenName($infoUser['firstname']);
+			$nameInstance->setFamilyName($infoUser['lastname']);
+			$nameInstance->setFullName($infoUser['firstname'].' '.$infoUser['lastname']);
+
+			$userInstance = new Google_Service_Directory_User();
+			$userInstance->setName($nameInstance);
+			$userInstance->setHashFunction("MD5");
+			$userInstance->setPrimaryEmail($infoUser['email']);
+			$userInstance->setPassword(hash("md5", $infoUser['password']));
+
+			$newUser = $service->users->insert($userInstance);
+		} catch (\Google_Exception $error) {
+			$this->interpretationException($error, 'newUserDirectory');
+		}
+		return $newUser->toSimpleObject();
+	}
+
 
 	/**
 	 * Permet de retourner la liste des users présents dans l'organisation appartenant au domain et un customer
@@ -304,7 +391,7 @@ class GsuiteInterface
 		try {
 			$listMembers = $service->users->listUsers($optParams);
 		} catch (\Google_Exception $error) {
-			$this->interpretationException ($error, 'getListMembers');
+			$this->interpretationException($error, 'getListMembers');
 		}
 		$users = [];
 		foreach ($listMembers->getUsers() as $user) {
@@ -329,7 +416,7 @@ class GsuiteInterface
 		try {
 			$userPhoto = $service->users_photos->get($userKey);
 		} catch (\Google_Exception $error) {
-			$this->interpretationException ($error, 'getUserPhoto');
+			$this->interpretationException($error, 'getUserPhoto');
 		}
 
 		return $userPhoto->toSimpleObject();
@@ -374,7 +461,7 @@ class GsuiteInterface
 		try {
 			$peoples = $service->people_connections->listPeopleConnections('people/' . $accountId, $optParams);
 		} catch (\Google_Exception $error) {
-			$this->interpretationException ($error, 'getPeopleConnection');
+			$this->interpretationException($error, 'getPeopleConnection');
 		}
 		$listPeople = [];
 		while (true) {
@@ -410,7 +497,7 @@ class GsuiteInterface
 		try {
 			$people = $service->people->get('people/' . $accountId, $optParams);
 		} catch (\Google_Exception $error) {
-			$this->interpretationException ($error, 'getInfoPeople');
+			$this->interpretationException($error, 'getInfoPeople');
 		}
 		return $people->toSimpleObject();
 	}
@@ -425,7 +512,7 @@ class GsuiteInterface
 		try {
 			$contactGroup = $service->contactGroups->get('contactGroups/all');
 		} catch (\Google_Exception $error) {
-			$this->interpretationException ($error, 'getContactGroup');
+			$this->interpretationException($error, 'getContactGroup');
 		}
 		return $contactGroup->toSimpleObject();
 	}
@@ -444,7 +531,7 @@ class GsuiteInterface
 		try {
 			$user = $service->people->get($userId);
 		} catch (\Google_Exception $error) {
-			$this->interpretationException ($error, 'getUserInfo');
+			$this->interpretationException($error, 'getUserInfo');
 		}
 		return $user->toSimpleObject();
 	}
@@ -468,7 +555,7 @@ class GsuiteInterface
 		try {
 			$events = $service->events->listEvents($calendarId, $optParams);
 		} catch (\Google_Exception $error) {
-			$this->interpretationException ($error, 'getListEventsCalendar');
+			$this->interpretationException($error, 'getListEventsCalendar');
 		}
 		$litEvents = [];
 		while (true) {
@@ -500,36 +587,37 @@ class GsuiteInterface
 		try {
 			$calendar = $service->calendars->get($idCalendar);
 		} catch (\Google_Exception $error) {
-			$this->interpretationException ($error, 'getCalendar');
+			$this->interpretationException($error, 'getCalendar');
 		}
 		return $calendar->toSimpleObject();
 	}
 
-	private function interpretationException (Google_Exception $error, $nameFunction) {
+	private function interpretationException(Google_Exception $error, $nameFunction)
+	{
 		if ($error->getCode() === 400) {
 			throw new CustomException(
-				'GsuiteInterface/'.$nameFunction.'/ [' . $error->getCode() . '] ' . $error->getMessage()->status,
-				GS_ERROR2
+				'GsuiteInterface/' . $nameFunction . '/ [' . $error->getCode() . '] ' . $error->getMessage()->status,
+				GS_ERROR_400
 			);
 		} else if ($error->getCode() === 401) {
 			throw new CustomException(
-				'GsuiteInterface/'.$nameFunction.'/ [' . $error->getCode() . '] ' . $error->getMessage(),
-				GS_ERROR2
+				'GsuiteInterface/' . $nameFunction . '/ [' . $error->getCode() . '] ' . $error->getMessage(),
+				GS_ERROR_401
 			);
 		} else if ($error->getCode() === 403) {
 			throw new CustomException(
-				'GsuiteInterface/'.$nameFunction.'/ [' . $error->getCode() . '] ' . $error->getMessage(),
-				GS_ERROR2
+				'GsuiteInterface/' . $nameFunction . '/ [' . $error->getCode() . '] ' . $error->getMessage(),
+				GS_ERROR_403
 			);
 		} else if ($error->getCode() === 404) {
 			throw new CustomException(
-				'GsuiteInterface/'.$nameFunction.'/ [' . $error->getCode() . '] ' . $error->getMessage(),
-				GS_ERROR2
+				'GsuiteInterface/' . $nameFunction . '/ [' . $error->getCode() . '] ' . $error->getMessage(),
+				GS_ERROR_404
 			);
 		} else {
 			throw new CustomException(
-				'GsuiteInterface/'.$nameFunction.'/ [' . $error->getCode() . '] ' . $error->getMessage(),
-				GS_ERROR2
+				'GsuiteInterface/' . $nameFunction . '/ [' . $error->getCode() . '] ' . $error->getMessage(),
+				GS_ERROR
 			);
 		}
 	}

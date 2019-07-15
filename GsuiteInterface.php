@@ -370,6 +370,27 @@ class GsuiteInterface
 		return $newUser->toSimpleObject();
 	}
 
+	/**
+	 * Permet de suspendre un user
+	 * @param $userKey
+	 * @return stdClass
+	 * @throws CustomException
+	 * @throws Google_Exception
+	 */
+	public function suspendedUserDirectory($userKey) {
+		$this->setServiceAuthentification();
+		$this->setScopeDirectory();
+		$service = new Google_Service_Directory($this->getClient());
+		try {
+			$userInstance = new Google_Service_Directory_User();
+			$userInstance->setSuspended(true);
+			$newUpdated = $service->users->update($userKey, $userInstance);
+		} catch (\Google_Exception $error) {
+			$this->interpretationException($error, 'suspendedUserDirectory');
+		}
+		return $newUpdated->toSimpleObject();
+	}
+
 
 	/**
 	 * Permet de retourner la liste des users présents dans l'organisation appartenant au domain et un customer

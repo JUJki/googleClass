@@ -7,13 +7,13 @@ class GsuiteInterface
 {
 
 	private $client;
-	private $pathJsonWebAuth = 'client_secret_aouth.json';
-	private $pathJsonAccountService = 'favlink-gsuite-204de3d79173.json';
-	private $nameApp = 'FavLink-GSuite';
-	private $domainGsuite = 'favlink.net';
-	private $emailDelegate = 'julien@favlink.net';
-	private $urlDomain = 'https://440891e6.ngrok.io';
-	private $endPointNotifications = 'notifications.php';
+	private $pathJsonWebAuth = 'client_secret_aouth.json'; // a update
+	private $pathJsonAccountService = 'favlink-gsuite-204de3d79173.json'; // a update
+	private $nameApp = 'FavLink-GSuite'; // a update
+	private $domainGsuite = 'favlink.net'; // a update
+	private $emailDelegate = 'julien@favlink.net'; // a update
+	private $urlDomain = 'https://440891e6.ngrok.io'; // a update
+	private $endPointNotifications = 'notifications.php'; // a update
 	private $personFields = [
 		'addresses',
 		'ageRanges',
@@ -60,21 +60,12 @@ class GsuiteInterface
 	 */
 	public function setOauthClient()
 	{
-		$this->setWebAuthentification();
+		$this->client->setAuthConfig($this->pathJsonWebAuth);
 		$this->setScopeUserOauth();
 	}
 
 	/**
-	 * Permet de set le client avec le fichier json web Oauth
-	 * @throws Google_Exception
-	 */
-	private function setWebAuthentification()
-	{
-		$this->client->setAuthConfig($this->pathJsonWebAuth);
-	}
-
-	/**
-	 * Permet de set le client google avec le dichier json account service
+	 * Permet de set le client google avec le fichier json account service
 	 * @throws Google_Exception
 	 */
 	private function setServiceAuthentification()
@@ -114,7 +105,7 @@ class GsuiteInterface
 	}
 
 	/**
-	 * Scopes pour les permissions demandant les infos sur un calendar et ces evenements
+	 * Scopes pour les permissions demandant les infos sur un calendar et ces events
 	 */
 	private function setScopeCalendar()
 	{
@@ -147,7 +138,7 @@ class GsuiteInterface
 	}
 
 	/**
-	 * Scopes pour les permissions demandant les infos pour consulter un organisation
+	 * Scopes pour les permissions demandant les infos pour consulter une organisation
 	 */
 	private function setScopeDirectory()
 	{
@@ -164,7 +155,8 @@ class GsuiteInterface
 				Google_Service_Directory::ADMIN_DIRECTORY_CUSTOMER,
 				Google_Service_Directory::ADMIN_DIRECTORY_CUSTOMER_READONLY,
 				Google_Service_Directory::ADMIN_DIRECTORY_ORGUNIT,
-				Google_Service_Directory::ADMIN_DIRECTORY_ORGUNIT_READONLY
+				Google_Service_Directory::ADMIN_DIRECTORY_ORGUNIT_READONLY,
+				Google_Service_Directory::ADMIN_DIRECTORY_NOTIFICATIONS
 			]
 		);
 	}
@@ -210,7 +202,7 @@ class GsuiteInterface
 	}
 
 	/**
-	 * Permet de set un webhook
+	 * Permet de faire une action sur un webhook pour un user sur un domain
 	 * @param $event
 	 * @return Google_Service_Directory_Channel
 	 * @throws CustomException
@@ -248,9 +240,29 @@ class GsuiteInterface
 		try {
 			$response = $service->users->watch($directoryChannel, $optParams);
 		} catch (\Google_Exception $error) {
-			$this->interpretationException($error, 'getCustomerInfo');
+			$this->interpretationException($error, 'setWebhookDirectoryUser');
 		}
 		return $response;
+	}
+
+	/**
+	 * Permet de recuperer la liste de notifications
+	 * @param string $customerKey
+	 * @return Google_Service_Directory_Notification
+	 * @throws CustomException
+	 * @throws Google_Exception
+	 */
+	public function getListNotifications($customerKey = "my_customer") {
+		$this->setServiceAuthentification();
+		$this->setScopeDirectory();
+		$service = new Google_Service_Directory($this->getClient());
+
+		try {
+			$notificationsList = $service->notifications->listNotifications($customerKey);
+		} catch (\Google_Exception $error) {
+			$this->interpretationException($error, 'getListNotifications');
+		}
+		return $notificationsList->getItems();
 	}
 
 	/**
@@ -294,10 +306,11 @@ class GsuiteInterface
 	}
 
 	/**
-	 * Permet de récupérer les informations de toutes les organistions d'un customer
+	 * Permet de récupérer les informations de toutes les organistions d'un customer, par defaut my_customer
 	 * @param string $customerId
-	 * @return stdClass
+	 * @return Google_Service_Directory_OrgUnit
 	 * @throws CustomException
+	 * @throws Google_Exception
 	 */
 	public function getListOrganisationInfo($customerId = 'my_customer')
 	{
@@ -331,7 +344,6 @@ class GsuiteInterface
 		}
 		return $user->toSimpleObject();
 	}
-
 
 	/**
 	 * Permet de creer un nouvel utilisateur
@@ -385,7 +397,7 @@ class GsuiteInterface
 	}
 
 	/**
-	 * Permet de suspendre un user
+	 * Permet de suspendre un user a partir de son userkey
 	 * @param $userKey is id ou user email
 	 * @return stdClass
 	 * @throws CustomException
@@ -406,9 +418,9 @@ class GsuiteInterface
 		return $newUpdated->toSimpleObject();
 	}
 
-
 	/**
-	 * Permet de retourner la liste des users présents dans l'organisation appartenant au domain et un customer
+	 * Permet de retourner la liste des users présents dans l'organisation appartenant au domain et
+	 * au customerId par defaut my_customer
 	 * @param string $customerId
 	 * @return array
 	 * @throws CustomException
@@ -454,7 +466,6 @@ class GsuiteInterface
 		} catch (\Google_Exception $error) {
 			$this->interpretationException($error, 'getUserPhoto');
 		}
-
 		return $userPhoto->toSimpleObject();
 	}
 
@@ -476,11 +487,11 @@ class GsuiteInterface
 			$this->interpretationException($error, 'getUserAlias');
 		}
 
-		return $userAlias->getAliases();
+		return $userAlias->toSimpleObject();
 	}
 
 	/**
-	 * Permet de récuperer les connections d'un contact, par défaut c'est le compte principal
+	 * Permet de récuperer les connections d'un contact, par défaut c'est le compte principal me
 	 * @param string $accountId
 	 * @return array
 	 * @throws CustomException
@@ -515,9 +526,8 @@ class GsuiteInterface
 		return $listPeople;
 	}
 
-
 	/**
-	 * Permet de recuperer les informations d'un utilisateur à partir de son accountId
+	 * Permet de recuperer les informations d'un utilisateur à partir de son accountId, par defaut me
 	 * @param string $accountId
 	 * @return stdClass
 	 * @throws CustomException
@@ -538,7 +548,6 @@ class GsuiteInterface
 		return $people->toSimpleObject();
 	}
 
-
 	/**
 	 * Permet de récupérer les groups
 	 * @return stdClass
@@ -558,11 +567,12 @@ class GsuiteInterface
 		return $contactGroup->toSimpleObject();
 	}
 
-
 	/**
-	 * Permet de récuperer les informations d'un user à partir de son id
+	 * Permet de récuperer les informations d'un user à partir de son id, par defaut me
 	 * @param string $userId
 	 * @return stdClass
+	 * @throws CustomException
+	 * @throws Google_Exception
 	 */
 	public function getUserInfo($userId = 'me')
 	{
@@ -578,9 +588,11 @@ class GsuiteInterface
 	}
 
 	/**
-	 * Permet de recuperer les evenements d'un calendrier selon son id
-	 * @param $calendarId string
+	 * Permet de recuperer les evenements d'un calendrier selon son id, par defaut primary
+	 * @param string $calendarId
 	 * @return array
+	 * @throws CustomException
+	 * @throws Google_Exception
 	 */
 	public function getListEventsCalendar($calendarId = 'primary')
 	{
@@ -615,7 +627,7 @@ class GsuiteInterface
 	}
 
 	/**
-	 * Permet de récupérer les informations d'un calendar
+	 * Permet de récupérer les informations d'un calendar, par defaut primary
 	 * @param string $idCalendar
 	 * @return stdClass
 	 * @throws CustomException

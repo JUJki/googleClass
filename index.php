@@ -17,7 +17,11 @@ try {
 		"email" => "jul@favlink.net",
 		"password" => "123456",
 	];
-	$events = $gsuiteInterface->setWebhookDirectoryUser('adsd');
+	//$events = $gsuiteInterface->setWebhookDirectoryUser('add');
+	/*echo '<pre>';
+	var_dump($events);
+	echo '</pre>';*/
+	$events = $gsuiteInterface->setWebhookDirectoryUser('add');
 	echo '<pre>';
 	var_dump($events);
 	echo '</pre>';

@@ -202,6 +202,44 @@ class GsuiteInterface
 	}
 
 	/**
+	 * Permet de recuperer les informations d'un domain
+	 * @param string $customerKey
+	 * @return stdClass
+	 * @throws CustomException
+	 * @throws Google_Exception
+	 */
+	public function getInfoDomain($customerKey = 'my_customer'){
+		$this->setServiceAuthentification();
+		$this->setScopeDirectory();
+		$service = new Google_Service_Directory($this->getClient());
+		try {
+			$domainInfo = $service->domains->get($customerKey, $this->domainGsuite);
+		} catch (\Google_Exception $error) {
+			$this->interpretationException($error, 'getInfoDomain');
+		}
+		return $domainInfo->toSimpleObject();
+	}
+
+	/**
+	 * Permet de recuperer une list de domain
+	 * @param string $customerKey
+	 * @return stdClass
+	 * @throws CustomException
+	 * @throws Google_Exception
+	 */
+	public function getListDomain($customerKey = 'my_customer') {
+		$this->setServiceAuthentification();
+		$this->setScopeDirectory();
+		$service = new Google_Service_Directory($this->getClient());
+		try {
+			$domainList = $service->domains->listDomains($customerKey);
+		} catch (\Google_Exception $error) {
+			$this->interpretationException($error, 'getListDomain');
+		}
+		return $domainList->toSimpleObject();
+	}
+
+	/**
 	 * Permet de faire une action sur un webhook pour un user sur un domain
 	 * @param $event
 	 * @return Google_Service_Directory_Channel

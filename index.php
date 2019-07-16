@@ -7,6 +7,33 @@ ini_set('display_errors', 1);
 
 $gsuiteInterface = new GsuiteInterface();
 
+
+echo '<h6>Info Domainr</h6>';
+try {
+	$domain = $gsuiteInterface->getInfoDomain();
+	echo '<pre>';
+	var_dump($domain);
+	echo '</pre>';
+} catch (\CustomException $error) {
+	echo 'code : ' . $error->getCode();
+	echo '</br>';
+	echo 'message : ' . $error->getMessage();
+}
+
+
+echo '<h6>List Domainr</h6>';
+try {
+	$domain = $gsuiteInterface->getListDomain();
+	echo '<pre>';
+	var_dump($domain);
+	echo '</pre>';
+} catch (\CustomException $error) {
+	echo 'code : ' . $error->getCode();
+	echo '</br>';
+	echo 'message : ' . $error->getMessage();
+}
+
+
 echo '<h6>Weebhook user</h6>';
 try {
 	$settingWebhook = $gsuiteInterface->setWebhookDirectoryUser('add');

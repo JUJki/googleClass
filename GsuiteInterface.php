@@ -249,7 +249,7 @@ class GsuiteInterface
 	/**
 	 * Permet de recuperer la liste de notifications
 	 * @param string $customerKey
-	 * @return Google_Service_Directory_Notification
+	 * @return stdClass
 	 * @throws CustomException
 	 * @throws Google_Exception
 	 */

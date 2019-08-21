@@ -161,6 +161,10 @@ class GsuiteInterface
 		);
 	}
 
+	/**
+	 * Retourne l'url de notifications
+	 * @return string
+	 */
 	public function getUrlNotification()
 	{
 		return $this->urlDomain . DIRECTORY_SEPARATOR . $this->endPointNotifications;
@@ -174,6 +178,26 @@ class GsuiteInterface
 	{
 		return $this->client;
 	}
+
+	/**
+	 * Retourne le domain par défaut
+	 * @return string
+	 */
+	public function getDomainGsuite()
+	{
+		return $this->domainGsuite;
+	}
+
+	/**
+	 * Change la valeur du domain par défaut
+	 * @param string $domainGsuite
+	 */
+	public function setDomainGsuite($domainGsuite)
+	{
+		$this->domainGsuite = $domainGsuite;
+	}
+
+
 
 	/**
 	 * Retourne l'url de redirection apres autorisation google
